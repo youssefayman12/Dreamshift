@@ -200,7 +200,7 @@ export class UI {
     pv.reset(75, 110, 1);
     let last = performance.now(), t = 0, g = 1, nextFlip = 1.2;
     const loop = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000); last = now; t += dt;
+      const dt = Math.max(0, Math.min(0.05, (now - last) / 1000)); last = now; t += dt;
       nextFlip -= dt;
       if (nextFlip < 0) { g = -g; pv.onFlip(g); nextFlip = 1.6; setTimeout(() => pv.onLand(700), 180); }
       const eq = this.g.progress.equipped;

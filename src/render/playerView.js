@@ -124,7 +124,7 @@ export class PlayerView {
     if (!this.visible) return;
     const o = this.orientSafe();
     const sq = this.squash.value;
-    const spawn = easeOutBack(this.spawnT);
+    const spawn = Math.max(0.01, easeOutBack(clamp(this.spawnT, 0, 1)));
     const sx = (1 - sq * 0.55) * spawn;
     const sy = (1 + sq) * spawn;
 

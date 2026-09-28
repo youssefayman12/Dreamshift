@@ -8,5 +8,8 @@
     "dev": "node tools/serve.mjs",
     "validate": "node tools/validate.mjs",
     "build": "node tools/build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.2"
   }
 }

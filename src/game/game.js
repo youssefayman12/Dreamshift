@@ -105,8 +105,6 @@ export class Game {
     const st = STAGE_BY_ID['1-2'];
     const level = buildStage(st, CHUNKS);
     this.run = new Run({ level, mode: 'attract', stage: st });
-    this.run.runner.x += TILE * 40;
-    this.run.prevX = this.run.runner.x;
     this.bot = new Bot(this.run);
     this.renderer.attach(this.run);
     this.hud.reset();
@@ -144,7 +142,7 @@ export class Game {
   startEndless() {
     if (!this.progress.endlessUnlocked && !this.params.has('endless')) return;
     const worlds = WORLDS.filter((w) => this.progress.isUnlocked(w.stages[0])).map((w) => w.id);
-    const dir = new EndlessDirector(worlds.length ? worlds : ['city']);
+    const dir = new EndlessDirector(worlds.length ? worlds : ['city'], undefined, { worldLen: +this.params.get('worldlen') || undefined });
     const run = new Run({ level: dir.level, mode: 'endless' });
     run.director = dir;
     run.worldName = dir.worldName;
@@ -169,12 +167,11 @@ export class Game {
   async toTitle() {
     if (this.state === 'play' || this.state === 'pause') this.bankRun();
     this.platform.gameplayStop();
-    this.state = 'menu-wait';
-    await this.ads.naturalBreak('menu');
     this.startAttract();
     this.ui.show('title');
     this.audio.duck(false);
     this.audio.playTrack('menu', 0.3);
+    await this.ads.naturalBreak('menu');
   }
 
   pause() {

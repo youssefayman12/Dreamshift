@@ -9,10 +9,11 @@ const WORLD_LEN = 760;   // columns per world before drifting onward
 const AHEAD = 90;        // columns kept generated ahead of the runner
 
 export class EndlessDirector {
-  constructor(worlds, seed = (Math.random() * 1e9) | 0) {
+  constructor(worlds, seed = (Math.random() * 1e9) | 0, opts = {}) {
+    this.worldLen = opts.worldLen ?? WORLD_LEN;
     this.worlds = worlds;         // ordered list of unlocked world ids
     this.rng = mulberry32(seed);
-    this.level = new Level({ endless: true, speed: [345, 345], speedMax: 560, speedRampLen: 70000, theme: worlds[0] });
+    this.level = new Level({ endless: true, speed: [345, 345], speedMax: 530, speedRampLen: 70000, theme: worlds[0] });
     this.worldIdx = 0;
     this.worldStartCol = 0;
     this.boundaries = [];         // {x, from, to}
@@ -50,7 +51,7 @@ export class EndlessDirector {
     const need = Math.floor(runnerX / TILE) + AHEAD;
     while (L.colCount < need) {
       const col = L.colCount;
-      if (col - this.worldStartCol > WORLD_LEN && this.worlds.length > 1) {
+      if (col - this.worldStartCol > this.worldLen && this.worlds.length > 1) {
         const from = this.world;
         this.worldIdx++;
         this.worldStartCol = col;
