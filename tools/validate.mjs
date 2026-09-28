@@ -31,6 +31,18 @@ function timeAt(L, x) {
   return t;
 }
 
+// Must mirror the solver's state key.
+function keyOf(q) {
+  let k = `${Math.round(q.y * 2)}|${Math.round(q.vy / 6)}|${q.g}|${q.grounded ? 1 : 0}|${q.lastGate}|${q.coyote > 0 ? 1 : 0}`;
+  if (q.crumbles.size) {
+    const minC = Math.floor(q.x / TILE) - 2;
+    const ks = [];
+    for (const [c] of q.crumbles) if (Math.floor(c / 15) >= minC) ks.push(c);
+    if (ks.length) k += '|' + ks.sort((a, b) => a - b).join(',');
+  }
+  return k;
+}
+
 function analyze(L, start, t0, goalX) {
   const res = explore(L, start, t0, goalX, { every: 1, maxStates: 3000 });
   if (!res.ok) return { ok: false, x: res.x, col: Math.floor(res.x / TILE) };
@@ -46,60 +58,56 @@ function analyze(L, start, t0, goalX) {
     }
   }
   const goodKeys = nodes.map((arr, f) => new Set([...goodIdx[f]].map((i) => arr[i].key)));
-  // Canonical path: pick the final node whose path has the fewest flips.
-  let best = null;
-  for (let i = 0; i < Math.min(nodes[nodes.length - 1].length, 40); i++) {
-    const fl = pathTo(nodes, i);
-    if (!best || fl.length < best.length) best = fl;
-  }
-  // Replay canonical path, recording states before each frame.
-  const states = [];
-  const p = cloneRunner(start);
-  const flipSet = new Set(best);
-  for (let f = 0; f < nodes.length - 1; f++) {
-    states.push(cloneRunner(p));
-    if (flipSet.has(f)) flip(p);
-    step(p, L, t0 + (f + 1) * SIM_DT, SIM_DT);
-  }
-  const keyOf = (q) => {
-    // must mirror solver key
-    let k = `${Math.round(q.y * 2)}|${Math.round(q.vy / 6)}|${q.g}|${q.grounded ? 1 : 0}|${q.lastGate}|${q.coyote > 0 ? 1 : 0}`;
-    if (q.crumbles.size) {
-      const minC = Math.floor(q.x / TILE) - 2;
-      const ks = [];
-      for (const [c] of q.crumbles) if (Math.floor(c / 15) >= minC) ks.push(c);
-      if (ks.length) k += '|' + ks.sort((a, b) => a - b).join(',');
-    }
-    return k;
-  };
-  const tryFlipAt = (f) => {
-    if (f < 0 || f >= states.length - 1) return false;
-    const q = cloneRunner(states[f]);
-    if (!(q.grounded || q.coyote > 0)) return false;
-    flip(q);
-    step(q, L, t0 + (f + 1) * SIM_DT, SIM_DT);
-    return q.alive && goodKeys[f + 1].has(keyOf(q));
-  };
+  // "Sensible human" route: stay put until staying put becomes fatal, then
+  // flip in the middle of the widest window of good timings before that.
+  const isGood = (q, f) => q.alive && goodKeys[f].has(keyOf(q));
+  let p = cloneRunner(start);
+  let f = 0;
   const windows = [];
-  for (let k = 0; k < best.length; k++) {
-    const F = best[k];
-    const prevF = k > 0 ? best[k - 1] : -1, nextF = k < best.length - 1 ? best[k + 1] : Infinity;
-    let lo = 0, hi = 0;
-    while (F - lo - 1 > prevF && tryFlipAt(F - lo - 1)) lo++;
-    // Later flips: states after F on canonical path include the flip; replay a no-flip branch.
-    const q = cloneRunner(states[F]);
-    for (let d = 1; d < 40 && F + d < nextF && F + d < states.length - 1; d++) {
-      step(q, L, t0 + (F + d) * SIM_DT, SIM_DT);
-      if (!q.alive || !(q.grounded || q.coyote > 0)) break;
-      const r = cloneRunner(q);
-      flip(r);
-      step(r, L, t0 + (F + d + 1) * SIM_DT, SIM_DT);
-      if (!(r.alive && goodKeys[F + d + 1].has(keyOf(r)))) break;
-      hi++;
+  const last = nodes.length - 1;
+  const H = 110;
+  let flips = 0;
+  while (f < last - 1) {
+    if (!(p.grounded || p.coyote > 0)) {
+      step(p, L, t0 + (f + 1) * SIM_DT, SIM_DT); f++;
+      if (!p.alive) return { ok: true, flips, windows, seconds: nodes.length * SIM_DT, lost: f, lostCol: Math.floor(p.x / TILE) };
+      continue;
     }
-    windows.push({ col: Math.floor(states[F].x / TILE), frames: lo + hi + 1 });
+    // Scan ahead on the no-flip continuation.
+    const flipGood = [];
+    let q = cloneRunner(p), dStar = -1;
+    for (let d = 0; d < H && f + d < last - 1; d++) {
+      const r = cloneRunner(q); flip(r); step(r, L, t0 + (f + d + 1) * SIM_DT, SIM_DT);
+      flipGood.push((q.grounded || q.coyote > 0) && isGood(r, f + d + 1));
+      step(q, L, t0 + (f + d + 1) * SIM_DT, SIM_DT);
+      if (!isGood(q, f + d + 1)) { dStar = d; break; }
+    }
+    if (dStar < 0) {
+      // No flip needed within the horizon: advance a chunk of frames.
+      const adv = Math.max(1, Math.min(30, flipGood.length));
+      for (let k = 0; k < adv && f < last - 1; k++) { step(p, L, t0 + (f + 1) * SIM_DT, SIM_DT); f++; }
+      continue;
+    }
+    // Widest interval of good flip frames in [0, dStar].
+    let best = null;
+    for (let d = 0; d <= dStar && d < flipGood.length; d++) {
+      if (!flipGood[d]) continue;
+      let e = d; while (e + 1 <= dStar && flipGood[e + 1]) e++;
+      if (!best || e - d >= best[1] - best[0]) best = [d, e];
+      d = e;
+    }
+    if (!best && process.env.DBG) {
+      console.log('LOST state', { y: p.y, vy: p.vy, g: p.g, gr: p.grounded, coy: p.coyote, x: p.x / TILE, dStar, fg: flipGood.slice(0, 5), good: isGood(p, f) });
+    }
+    if (!best) return { ok: true, flips, windows, seconds: nodes.length * SIM_DT, lost: f, lostCol: Math.floor(p.x / TILE) };
+    const at = Math.floor((best[0] + best[1]) / 2);
+    for (let k = 0; k < at; k++) { step(p, L, t0 + (f + 1) * SIM_DT, SIM_DT); f++; }
+    // Only count windows that aren't truncated by the level end.
+    if (last - f > 60) windows.push({ col: Math.floor(p.x / TILE), frames: best[1] - best[0] + 1 });
+    flip(p); flips++;
+    step(p, L, t0 + (f + 1) * SIM_DT, SIM_DT); f++;
   }
-  return { ok: true, flips: best.length, windows, seconds: nodes.length * SIM_DT };
+  return { ok: true, flips, windows, seconds: nodes.length * SIM_DT };
 }
 
 let failed = 0;
@@ -110,6 +118,10 @@ function report(label, L, start, t0, goalX) {
     const mark = L.chunkMarks.filter((m) => m.x <= r.x).pop();
     console.log(`  ✗ ${label}: STUCK at col ${r.col} (chunk ${mark?.id} +${r.col - Math.floor(mark.x / TILE)})`);
     return;
+  }
+  if (r.lost) {
+    const mark = L.chunkMarks.filter((m) => m.x <= r.lostCol * TILE).pop();
+    console.log(`  ! ${label}: human-policy route lost at ${mark.id}+${r.lostCol - mark.x / TILE}`);
   }
   const tight = r.windows.filter((w) => w.frames < 12).sort((a, b) => a.frames - b.frames);
   const min = r.windows.reduce((m, w) => Math.min(m, w.frames), 99);
@@ -128,10 +140,11 @@ if (args[0] === '--chunks') {
       const L = new Level({ speed: [sp, sp], endless: true });
       L.appendChunk(CHUNKS.c_rest); L.appendChunk(c, { mirror }); L.appendChunk(CHUNKS.c_rest); L.appendChunk(CHUNKS.c_rest);
       L.finalize();
-      for (const g of [1, -1]) {
+      const phased = c.rows.some((r) => /[AB]/.test(r)) || c.ents;
+      for (const g of [1, -1]) for (const t0 of phased ? [0, 0.3, 0.6, 0.9, 1.2, 1.5, 1.8, 2.1] : [0]) {
         const start = createRunner(TILE * 2, g === 1 ? 13 * TILE - PHYS.ph : 2 * TILE, g);
-        const res = explore(L, start, 0, (12 + c.w + 6) * TILE, { every: 2, keepPaths: false, maxStates: 1500 });
-        if (!res.ok) { console.log(`  ✗ ${id}${mirror ? '~' : ''} @${sp} g${g}: stuck col ${Math.floor(res.x / TILE) - 12}`); failed++; }
+        const res = explore(L, start, t0, (12 + c.w + 6) * TILE, { every: 2, keepPaths: false, maxStates: 1500 });
+        if (!res.ok) { console.log(`  ✗ ${id}${mirror ? '~' : ''} @${sp} g${g} t${t0}: stuck col ${Math.floor(res.x / TILE) - 12}`); failed++; }
       }
     }
   }

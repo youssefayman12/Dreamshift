@@ -30,7 +30,7 @@ export class Level {
     this.speedRampLen = opts.speedRampLen ?? 0; // 0 => ramp over whole level
     this.speedMax = opts.speedMax ?? this.speed1;
     this.endless = !!opts.endless;
-    this.phasePeriod = opts.phasePeriod ?? 2.0;
+    this.phasePeriod = opts.phasePeriod ?? 2.4;
     this.cols = [];        // array of Uint8Array(ROWS)
     this.styles = [];      // per column: theme id for rendering (endless blends worlds)
     this.colOffset = 0;    // columns dropped from the front (endless)
@@ -187,7 +187,12 @@ export class Level {
 
   tile(c, r) {
     if (r < 0 || r >= ROWS) return T_EMPTY;
-    const col = this.cols[c - this.colOffset];
+    let col = this.cols[c - this.colOffset];
+    if (!col && !this.endless) {
+      // Beyond the authored edges, the corridor simply continues.
+      if (c < 0) col = this.cols[0];
+      else if (c >= this.colCount) col = this.cols[this.cols.length - 1];
+    }
     return col ? col[r] : T_EMPTY;
   }
 
@@ -259,10 +264,12 @@ export function buildStage(stage, lib) {
   const L = new Level({ speed: stage.speed, phasePeriod: stage.phasePeriod, theme: stage.world });
   for (const part of stage.parts) {
     if (typeof part === 'string') {
-      const [id, flag] = part.split('~');
-      const chunk = lib[id];
+      // 'id~' mirrors floor<->ceiling, 'id!' turns lucid stars into fragments.
+      const id = part.replace(/[~!]/g, '');
+      let chunk = lib[id];
       if (!chunk) throw new Error(`Stage ${stage.id}: unknown chunk ${id}`);
-      L.appendChunk(chunk, { mirror: flag === '' || flag === 'm' });
+      if (part.includes('!')) chunk = { ...chunk, rows: chunk.rows.map((r) => r.replace(/\*/g, 'o')) };
+      L.appendChunk(chunk, { mirror: part.includes('~') });
     } else if (part.event) {
       L.addEvent(part.event, part);
     }

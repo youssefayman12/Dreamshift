@@ -157,6 +157,14 @@ export function step(p, L, t, dt, ev) {
   p.grounded = n > 0;
   p.groundKin = -1;
   if (p.grounded) {
+    // Snap flush to the surface so "grounded" always means touching.
+    let surf = p.g === 1 ? Infinity : -Infinity;
+    for (let i = 0; i < n; i++) {
+      const top = BUF[i * 5 + 1], bot = top + BUF[i * 5 + 3];
+      if (p.g === 1) surf = Math.min(surf, top); else surf = Math.max(surf, bot);
+    }
+    const sy = p.g === 1 ? surf - PH : surf;
+    if (Math.abs(sy - p.y) <= 1.6 && !blocked(L, p.x, sy, t, p)) p.y = sy;
     for (let i = 0; i < n; i++) {
       const ki = BUF[i * 5 + 4];
       if (ki >= 0) {
@@ -169,12 +177,16 @@ export function step(p, L, t, dt, ev) {
     const r = p.g === 1 ? Math.floor((p.y + PH + 2) / TILE) : Math.floor((p.y - 2) / TILE);
     const c0 = Math.floor(p.x / TILE), c1 = Math.floor((p.x + PW - 1e-6) / TILE);
     for (let c = c0; c <= c1; c++) {
-      if (L.tile(c, r) === T_CRUMBLE) {
-        const key = c * ROWS + r;
-        if (!p.crumbles.has(key)) {
-          p.crumbles.set(key, t);
-          ev?.push({ type: 'crumble', c, r });
+      if (L.tile(c, r) === T_CRUMBLE && !p.crumbles.has(c * ROWS + r)) {
+        // The whole connected run of petals collapses together.
+        let a = c, b = c;
+        while (L.tile(a - 1, r) === T_CRUMBLE) a--;
+        while (L.tile(b + 1, r) === T_CRUMBLE) b++;
+        for (let k = a; k <= b; k++) {
+          const key = k * ROWS + r;
+          if (!p.crumbles.has(key)) p.crumbles.set(key, t);
         }
+        ev?.push({ type: 'crumble', c, r, a, b });
       }
     }
     if (!wasGrounded) {

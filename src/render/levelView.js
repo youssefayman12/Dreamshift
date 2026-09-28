@@ -84,7 +84,8 @@ export class LevelView {
         if (!isStatic(ty)) continue;
         // skip deeply buried tiles: only decorate near surfaces
         const h = ((c * 73856093) ^ (r * 19349663)) >>> 0;
-        theme.tileDetail(ctx, c * TILE, r * TILE, h, t, ty === T_SOLID2);
+        const exp = (r > 0 && !isStatic(L.tile(c, r - 1)) ? 1 : 0) | (r < ROWS - 1 && !isStatic(L.tile(c, r + 1)) ? 2 : 0);
+        theme.tileDetail(ctx, c * TILE, r * TILE, h, t, ty === T_SOLID2, exp);
       }
     }
 

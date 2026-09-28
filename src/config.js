@@ -17,7 +17,7 @@ export const PHYS = {
   pw: 22,            // hitbox width  (visual is larger — forgiving)
   ph: 34,            // hitbox height
   cornerTol: 10,     // clipped corners up to this many units are nudged, not fatal
-  crumbleTime: 0.42, // seconds a crumbling block holds after being touched
+  crumbleTime: 0.5,  // seconds a crumbling block holds after being touched
   voidMargin: 70,    // how far outside the playfield before falling is fatal
 };
 
