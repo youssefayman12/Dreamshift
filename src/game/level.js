@@ -274,7 +274,33 @@ export function buildStage(stage, lib) {
       L.addEvent(part.event, part);
     }
   }
-  return L.finalize();
+  L.finalize();
+  syncHazards(L);
+  return L;
+}
+
+/**
+ * Stage time is a pure function of x (the runner never stops), so hazards
+ * flagged `sync` can be phase-aligned to threaten the runner's surface at
+ * the exact moment they arrive — reliable and learnable, never a coin flip.
+ */
+export function syncHazards(L) {
+  const hs = L.hazards.filter((h) => h.sync !== undefined && h.kind === 'pendulum');
+  if (!hs.length) return;
+  hs.sort((a, b) => a.px - b.px);
+  let x = 3 * TILE, t = 0, i = 0;
+  while (i < hs.length && x < L.width) {
+    const h = hs[i];
+    if (x + 11 >= h.px) {
+      // bob at the bottom of its arc (angle 0) when we pass under the pivot
+      const base = -t / h.period;
+      h.phase = (base - Math.floor(base)) + (h.sync === 'late' ? 0.5 : 0);
+      i++;
+      continue;
+    }
+    x += L.speedAt(x) / 120;
+    t += 1 / 120;
+  }
 }
 
 export { WORLD_H };

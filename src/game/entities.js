@@ -106,9 +106,9 @@ export function makePendulum(px, py, p = {}) {
   const r = p.r ?? 20, dir = p.dir ?? 1;
   const out = [0, 0, r];
   return circleHazard('pendulum', {
-    px, py, len, amp, period, phase, r, dir,
+    px, py, len, amp, period, phase, r, dir, sync: p.sync,
     minX: px - len - r, maxX: px + len + r,
-    angle(t) { return amp * Math.sin((t / period + phase) * TAU); },
+    angle(t) { return amp * Math.sin((t / period + this.phase) * TAU); },
     balls(t) {
       const a = this.angle(t);
       out[0] = px + Math.sin(a) * len;
@@ -168,7 +168,7 @@ export function mirrorEntity(e) {
     case 'rotor':
       return makeRotor(e.cx, WORLD_H - e.cy, { arms: e.arms, len: e.len, speed: -e.speed, phase: -e.phase, r: e.r, tipR: e.tipR });
     case 'pendulum':
-      return makePendulum(e.px, WORLD_H - e.py, { len: e.len, amp: e.amp, period: e.period, phase: e.phase, r: e.r, dir: -e.dir });
+      return makePendulum(e.px, WORLD_H - e.py, { len: e.len, amp: e.amp, period: e.period, phase: e.phase, r: e.r, dir: -e.dir, sync: e.sync });
     case 'mover':
       return makeMover(e.x, WORLD_H - e.y - e.h, { w: e.w / TILE, h: e.h / TILE, ax: e.ax, ay: -e.ay, period: e.period, phase: e.phase, style: e.style });
     case 'pillar':

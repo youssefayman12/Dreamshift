@@ -220,8 +220,8 @@ export class Renderer {
           break;
         }
         case 'crumble': {
-          const x = e.c * TILE + TILE / 2, y = e.r * TILE + TILE / 2;
-          P.burst(5, () => ({ x, y, vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80, ay: 400, life: 0.5, size: 3, color: '#ffc07a', shape: 'shard', vr: 5 }));
+          const y = e.r * TILE + TILE / 2;
+          P.burst(Math.min(18, (e.b - e.a + 1) * 2), (i) => ({ x: (e.a + (i % (e.b - e.a + 1))) * TILE + Math.random() * TILE, y, vx: (Math.random() - 0.5) * 80, vy: (Math.random() - 0.5) * 80, ay: 400, life: 0.5, size: 3, color: '#ffc07a', shape: 'shard', vr: 5 }));
           this.onSfx?.('crumble', e);
           break;
         }

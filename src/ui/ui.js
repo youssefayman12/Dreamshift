@@ -25,7 +25,7 @@ export class UI {
       <div class="screen dim" id="s-over" data-ui></div>
       <div class="screen dim" id="s-ending" data-ui></div>
       <button id="hud-pause" class="icon" data-ui data-act="pause" aria-label="Pause">❚❚</button>
-      <div class="stage-card" id="stage-card"><div class="n"></div><div class="t"></div></div>
+      <div class="stage-card" id="stage-card"><div class="n"></div><div class="t"></div><div class="h"></div></div>
       <div class="rotate" id="rotate">↻ Rotate your device for a wider view</div>
       <div class="toasts" id="toasts"></div>`;
     root.addEventListener('click', (e) => {
@@ -92,10 +92,11 @@ export class UI {
   setHudPause(on) { $('#hud-pause', this.root).classList.toggle('on', on); }
   setRotateHint(on) { $('#rotate', this.root).classList.toggle('on', on); }
 
-  stageCard(num, title) {
+  stageCard(num, title, hint = '') {
     const c = $('#stage-card', this.root);
     c.querySelector('.n').textContent = num;
     c.querySelector('.t').textContent = title;
+    c.querySelector('.h').textContent = hint;
     c.classList.remove('show');
     void c.offsetWidth;
     c.classList.add('show');

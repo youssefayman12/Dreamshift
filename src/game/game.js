@@ -137,7 +137,7 @@ export class Game {
     const level = buildStage(st, CHUNKS);
     const run = new Run({ level, mode: 'stage', stage: st, tutorial: id === '1-1' && !this.progress.data.tutorialDone });
     this.beginRun(run, st.world);
-    this.ui.stageCard(`${st.id} · ${WORLD_META[st.world].name.toUpperCase()}`, st.name.toUpperCase());
+    this.ui.stageCard(`${st.id} · ${WORLD_META[st.world].name.toUpperCase()}`, st.name.toUpperCase(), st.hint ?? '');
     this.analytics.track('stage_start', { id });
   }
 

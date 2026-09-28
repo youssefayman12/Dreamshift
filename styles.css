@@ -154,6 +154,8 @@ input[type=range] { width: 160px; accent-color: var(--accent); }
 .stage-card { position: absolute; left: 0; right: 0; top: 30%; text-align: center; pointer-events: none; opacity: 0; }
 .stage-card.show { animation: card 2.4s ease forwards; }
 .stage-card .n { font-size: 14px; letter-spacing: .4em; color: var(--accent); font-weight: 800; }
+.stage-card .h { margin-top: 10px; font-size: 15px; color: var(--gold); letter-spacing: .06em; font-weight: 700; }
+.stage-card.show { animation-duration: 3.2s; }
 .stage-card .t { font-size: clamp(28px, 6vw, 54px); font-weight: 900; letter-spacing: .14em; text-shadow: 0 0 30px rgba(143,246,255,.5); }
 @keyframes card { 0% { opacity: 0; transform: translateY(10px); letter-spacing: .3em; } 15%, 70% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateY(-10px); } }
 .rotate { position: absolute; bottom: calc(14px + var(--safe-b)); left: 50%; transform: translateX(-50%); background: rgba(20,10,44,.75); border-radius: 30px; padding: 8px 16px; font-size: 13px; color: var(--dim); display: none; white-space: nowrap; }
