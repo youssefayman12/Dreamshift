@@ -64,7 +64,7 @@ export function step(p, L, t, dt, ev) {
       if (ty !== T_PHASEA && ty !== T_PHASEB) continue;
       const key = c * ROWS + r;
       const inside = p.x < (c + 1) * TILE && p.x + PW + 8 > c * TILE && p.y < (r + 1) * TILE && p.y + PH > r * TILE;
-      if (inside && (!L.phaseOn(ty, tPrev) || prev.includes(key))) next.push(key);
+      if (inside && (!L.phaseOn(ty, tPrev, c) || prev.includes(key))) next.push(key);
     }
     p.phaseIgnore = next;
   }

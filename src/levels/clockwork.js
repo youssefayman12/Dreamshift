@@ -32,8 +32,8 @@ export const clockChunks = [
   ], { diff: 3, ents: { p: pend(0.25, 250, 0.9, 2.4) } }),
   // Rapid alternation with thorn seeds on the automatic path.
   mk('k_rapid', 44, [
-    [11, 5, 'F'], [3, 10, 'F'], [11, 15, 'F'], [3, 20, 'F'], [11, 25, 'F'], [3, 30, 'F'], [11, 35, 'F'],
-    [7, 17, 'x'], [7, 32, 'x'],
+    [11, 5, 'F'], [3, 10, 'F'], [11, 17, 'F'], [3, 22, 'F'], [11, 27, 'F'], [3, 32, 'F'], [11, 38, 'F'],
+    [7, 19, 'x'], [7, 40, 'x'],
     frags(12, 11, 14, 1), frags(2, 21, 24, 1), frags(12, 36, 40, 2),
   ], { diff: 3 }),
   // The fracture: architecture adrift in the void.

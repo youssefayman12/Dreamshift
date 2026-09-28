@@ -3,17 +3,17 @@
 // ceiling (pillars), and a turning baby mobile of thorny stars (rotors).
 import { mk, floorGap, ceilGap, floorSpikes, ceilSpikes, frags } from './chunk.js';
 
-const book = (w, ay, period, phase) => ({ type: 'mover', w, h: 1, ay, period, phase, style: 'book' });
+const book = (w, ay, period, phase, sync = 'peak') => ({ type: 'mover', w, h: 1, ay, period, phase, style: 'book', sync });
 const stack = (side, phase, max = 6, period = 2.4, sync) => ({ type: 'pillar', side, min: 0.2, max, period, phase, sync });
 const mobile = (len, speed, arms = 2, phase = 0) => ({ type: 'rotor', len, speed, arms, phase });
 
 export const bedroomChunks = [
-  // Ride a drifting book over the void; thorns above keep you on it.
-  mk('b_books', 38, [
-    floorGap(6, 31), ['|', 9, 8, 'm'], ['|', 21, 8, 'n'],
-    ceilSpikes(10, 15), ceilSpikes(22, 27),
-    frags(7, 10, 15, 1), frags(7, 22, 27, 1), frags(2, 17, 20, 3),
-  ], { diff: 1, ents: { m: book(7, 60, 2.6, 0), n: book(7, 60, 2.6, 0.5) } }),
+  // Ride a drifting book over the void — on top, or hanging underneath.
+  mk('b_books', 40, [
+    floorGap(8, 33), ['|', 10, 8, 'm'], ['|', 22, 8, 'n'],
+    ceilSpikes(12, 17), ceilSpikes(24, 29),
+    frags(7, 11, 16, 1), frags(9, 23, 28, 1), frags(2, 19, 21, 2),
+  ], { diff: 1, ents: { m: book(7, 50, 2.6, 0), n: book(7, 50, 2.6, 0.5) } }),
   // Shelves drift in turn above and below: flip from one to the next.
   mk('b_shelves', 40, [
     floorGap(5, 34), ceilGap(5, 34),
@@ -42,10 +42,10 @@ export const bedroomChunks = [
     ceilSpikes(16, 19), [6, 24, '^^^'],
     frags(2, 7, 15, 2), frags(6, 17, 22, 2), frags(2, 25, 38, 2), frags(12, 16, 24, 2),
   ], { diff: 3, ents: { p: stack('floor', 0, 3.0, 2, 'max'), r: mobile(40, 0.4, 2) } }),
-  // Drawer stairs: a tunnel with a book lift.
-  mk('b_lift', 38, [
-    floorGap(8, 29), ['|', 10, 9, 'm'], ['|', 20, 7, 'n'],
-    ceilSpikes(9, 17), ceilSpikes(24, 29),
-    frags(8, 11, 16, 1), frags(6, 21, 27, 2), frags(2, 18, 23, 2),
-  ], { diff: 3, ents: { m: book(8, 72, 2.0, 0), n: book(8, 72, 2.0, 0.3) } }),
+  // Book lifts: bigger swings, closer thorns.
+  mk('b_lift', 40, [
+    floorGap(8, 31), ['|', 10, 9, 'm'], ['|', 21, 7, 'n'],
+    ceilSpikes(12, 18), ceilSpikes(25, 30),
+    frags(8, 11, 17, 1), frags(6, 22, 28, 2), frags(2, 19, 23, 2),
+  ], { diff: 3, ents: { m: book(8, 60, 2.2, 0), n: book(8, 60, 2.2, 0.3) } }),
 ];

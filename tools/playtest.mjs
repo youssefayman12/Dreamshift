@@ -59,7 +59,12 @@ function section(L, start, t0, goalX) {
       if (plannedAt >= 0 && f >= plannedAt && (p.grounded || p.coyote > 0)) { flip(p); plannedAt = -1; }
       else if (plannedAt >= 0 && f >= plannedAt + 17) plannedAt = -1; // buffer expired
       step(p, L, t0 + (f + 1) * SIM_DT, SIM_DT); f++;
-      if (!p.alive) dead = true;
+      if (!p.alive) {
+        dead = true;
+        const mark = L.chunkMarks.filter((m) => m.x <= p.x).pop();
+        const key = `${mark.id}+${Math.floor((p.x - mark.x) / TILE)}(${p.death.cause})`;
+        DEATHS.set(key, (DEATHS.get(key) ?? 0) + 1);
+      }
       if (!dead && (p.grounded) && plannedAt < 0) { /* replan next frame */ }
     }
     if (!dead) wins++;
@@ -67,6 +72,7 @@ function section(L, start, t0, goalX) {
   return wins / TRIALS;
 }
 
+const DEATHS = new Map();
 function timeAt(L, x) { let px = 3 * TILE, t = 0; while (px < x) { px += L.speedAt(px) * SIM_DT; t += SIM_DT; } return t; }
 
 for (const s of STAGES) {
@@ -83,4 +89,5 @@ for (const s of STAGES) {
     expected += rate > 0 ? 1 / rate : 99;
   }
   console.log(`${s.id} ${s.name.padEnd(15)} sections: ${out.join('  ')}   ~${expected.toFixed(1)} attempts`);
+  if (process.env.WHERE) { console.log('   deaths:', [...DEATHS].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([k, n]) => `${k}×${n}`).join('  ')); DEATHS.clear(); }
 }

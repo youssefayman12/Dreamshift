@@ -126,10 +126,10 @@ export function makeMover(x, y, p = {}) {
   const ax = p.ax ?? 0, ay = p.ay ?? 72, period = p.period ?? 2.4, phase = p.phase ?? 0;
   return {
     id: nextId++, kind: 'mover', solid: true, x, y, w, h, ax, ay, period, phase,
-    style: p.style,
+    style: p.style, sync: p.sync,
     minX: x - Math.abs(ax), maxX: x + w + Math.abs(ax),
     rectAt(t, o) {
-      const s = Math.sin((t / period + phase) * TAU);
+      const s = Math.sin((t / period + this.phase) * TAU);
       o.x = x + ax * s; o.y = y + ay * s; o.w = w; o.h = h;
       return o;
     },
@@ -170,7 +170,7 @@ export function mirrorEntity(e) {
     case 'pendulum':
       return makePendulum(e.px, WORLD_H - e.py, { len: e.len, amp: e.amp, period: e.period, phase: e.phase, r: e.r, dir: -e.dir, sync: e.sync });
     case 'mover':
-      return makeMover(e.x, WORLD_H - e.y - e.h, { w: e.w / TILE, h: e.h / TILE, ax: e.ax, ay: -e.ay, period: e.period, phase: e.phase, style: e.style });
+      return makeMover(e.x, WORLD_H - e.y - e.h, { w: e.w / TILE, h: e.h / TILE, ax: e.ax, ay: -e.ay, period: e.period, phase: e.phase, style: e.style, sync: e.sync });
     case 'pillar':
       return makePillar(e.x, WORLD_H - e.baseY, {
         w: e.w / TILE, min: e.min / TILE, max: e.max / TILE, period: e.period, phase: e.phase,

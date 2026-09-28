@@ -162,9 +162,10 @@ export class LevelView {
   }
 
   drawPhase(ctx, L, c, r, ty, t, pal) {
-    const on = L.phaseOn(ty, t);
+    const on = L.phaseOn(ty, t, c);
     const P = L.phasePeriod;
-    const m = ((t % P) + P) % P;
+    const tt = t + (L.phaseOff?.[c - L.colOffset] ?? 0);
+    const m = ((tt % P) + P) % P;
     // time until this block turns on
     const onAt = ty === T_PHASEA ? P : P / 2;
     let until = (onAt - m + P) % P;

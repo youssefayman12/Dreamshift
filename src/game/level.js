@@ -198,9 +198,10 @@ export class Level {
 
   styleAt(c) { return this.styles[c - this.colOffset] ?? this.theme; }
 
-  phaseOn(type, t) {
+  phaseOn(type, t, c) {
     const P = this.phasePeriod;
-    const m = ((t % P) + P) % P;
+    const tt = t + (this.phaseOff?.[c - this.colOffset] ?? 0);
+    const m = ((tt % P) + P) % P;
     return type === T_PHASEA ? m < P / 2 : m >= P / 2;
   }
 
@@ -214,7 +215,7 @@ export class Level {
       return trig === undefined || t < trig + PHYS.crumbleTime;
     }
     if (ty === T_PHASEA || ty === T_PHASEB) {
-      if (!this.phaseOn(ty, t)) return false;
+      if (!this.phaseOn(ty, t, c)) return false;
       if (p?.phaseIgnore && p.phaseIgnore.includes(c * ROWS + r)) return false;
       return true;
     }
@@ -285,10 +286,13 @@ export function buildStage(stage, lib) {
  * the exact moment they arrive — reliable and learnable, never a coin flip.
  */
 export function syncHazards(L) {
+  alignPhases(L);
   const items = [
     ...L.hazards.filter((h) => h.sync && h.kind === 'pendulum').map((h) => ({ h, x: h.px - 11 })),
     // stacks: judged as the runner reaches their front face
     ...L.kinematics.filter((k) => k.sync && k.kind === 'pillar').map((h) => ({ h, x: h.x - 40 })),
+    // books: at their peak (nearest the surface you drop from) as you reach them
+    ...L.kinematics.filter((k) => k.sync && k.kind === 'mover').map((h) => ({ h, x: h.x - 70 })),
   ].sort((a, b) => a.x - b.x);
   if (!items.length) return;
   let x = 3 * TILE, t = 0, i = 0;
@@ -300,6 +304,8 @@ export function syncHazards(L) {
       if (h.kind === 'pendulum') {
         // bob at the bottom of its arc (angle 0) as we pass under the pivot
         h.phase = frac + (h.sync === 'late' ? 0.5 : 0);
+      } else if (h.kind === 'mover') {
+        h.phase = frac + 0.75;
       } else {
         // 'max': fully extended as we arrive; 'min': fully retracted
         h.phase = frac + (h.sync === 'max' ? 0.5 : 0);
@@ -309,6 +315,27 @@ export function syncHazards(L) {
     }
     x += L.speedAt(x) / 120;
     t += 1 / 120;
+  }
+}
+
+/**
+ * Beat blocks: align each chunk's rhythm so the runner reaches its first
+ * phase block in the middle of a beat — never exactly on a switch.
+ */
+export function alignPhases(L) {
+  const P = L.phasePeriod;
+  L.phaseOff = new Float32Array(L.cols.length);
+  const time = (x) => { let px = 3 * TILE, t = 0; while (px < x) { px += L.speedAt(px) / 120; t += 1 / 120; } return t; };
+  for (const m of L.chunkMarks) {
+    const c0 = Math.round(m.x / TILE), c1 = c0 + m.w;
+    let first = -1;
+    for (let c = c0; c < c1 && first < 0; c++) {
+      for (let r = 0; r < ROWS; r++) { const ty = L.tile(c, r); if (ty === T_PHASEA || ty === T_PHASEB) { first = c; break; } }
+    }
+    if (first < 0) continue;
+    const ta = time(first * TILE - 50);
+    const off = (((0.25 * P - ta) % P) + P) % P;
+    for (let c = c0; c < c1; c++) L.phaseOff[c - L.colOffset] = off;
   }
 }
 
