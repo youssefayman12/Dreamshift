@@ -13,6 +13,7 @@ import { makeSpike, makeDrifter, makeEntity, mirrorEntity } from './entities.js'
 
 export const T_EMPTY = 0, T_SOLID = 1, T_SOLID2 = 2, T_CRUMBLE = 3, T_PHASEA = 4, T_PHASEB = 5;
 const BIN = 8; // columns per spatial bin
+let PID = 0;
 
 const SOLID_CHARS = { '#': T_SOLID, '=': T_SOLID2, X: T_CRUMBLE, A: T_PHASEA, B: T_PHASEB };
 const SPIKE_CHARS = { '^': 'u', v: 'd', '<': 'l', '>': 'r' };
@@ -85,8 +86,8 @@ export class Level {
         const x = c * TILE, y = r * TILE;
         switch (ch) {
           case 'x': this.addHazard(makeDrifter(x + TILE / 2, y + TILE / 2)); break;
-          case 'o': this.pickups.push({ id: this.pickups.length, type: 'frag', x: x + TILE / 2, y: y + TILE / 2 }); break;
-          case '*': this.pickups.push({ id: this.pickups.length, type: 'star', x: x + TILE / 2, y: y + TILE / 2 }); break;
+          case 'o': this.pickups.push({ id: PID++, type: 'frag', x: x + TILE / 2, y: y + TILE / 2 }); break;
+          case '*': this.pickups.push({ id: PID++, type: 'star', x: x + TILE / 2, y: y + TILE / 2 }); break;
           case 'C':
             if (!this.endless) this.checkpoints.push(this.makeCheckpoint(c, r, col, rows, cc));
             break;
@@ -142,10 +143,21 @@ export class Level {
   }
 
   finalize() {
+    // Group contiguous spikes so one spike bed = one near-miss opportunity.
+    const byKey = new Map();
+    for (const h of this.hazards) {
+      if (h.group !== undefined) continue;
+      if (h.kind !== 'spike') { h.group = h.id; continue; }
+      const left = byKey.get(`${h.c - 1},${h.r},${h.dir}`);
+      h.group = left ? left.group : h.id;
+      byKey.set(`${h.c},${h.r},${h.dir}`, h);
+    }
     this.pickups.sort((a, b) => a.x - b.x);
-    this.pickups.forEach((p, i) => (p.id = i));
     this.gates.sort((a, b) => a.x - b.x);
-    this.gates.forEach((g, i) => (g.id = i));
+    if (!this.endless) {
+      this.pickups.forEach((p, i) => (p.id = i));
+      this.gates.forEach((g, i) => (g.id = i));
+    }
     this.checkpoints.sort((a, b) => a.x - b.x);
     this.events.sort((a, b) => a.x - b.x);
     if (!this.endless && !isFinite(this.finishX)) this.finishX = this.width - TILE * 4;

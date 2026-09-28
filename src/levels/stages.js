@@ -3,10 +3,16 @@
 import { cityChunks } from './city.js';
 
 export const CHUNKS = {};
-for (const c of [...cityChunks]) {
-  if (CHUNKS[c.id]) throw new Error('Duplicate chunk ' + c.id);
-  CHUNKS[c.id] = c;
+function register(world, list) {
+  for (const c of list) {
+    if (CHUNKS[c.id]) throw new Error('Duplicate chunk ' + c.id);
+    c.world = world;
+    // Chunks with tutorial cues, checkpoints or exits never enter endless mode.
+    if (c.rows.some((r) => /[TCE]/.test(r))) c.noEndless = true;
+    CHUNKS[c.id] = c;
+  }
 }
+register('city', cityChunks);
 
 export const STAGES = [
   {
@@ -34,3 +40,14 @@ export const STAGES = [
 ];
 
 export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s]));
+
+export const WORLD_META = {
+  city: { name: 'Drift City', blurb: 'A floating city that forgot which way is up.', color: '#8ff6ff' },
+  garden: { name: 'Moonlit Garden', blurb: 'Giant blooms, upward waterfalls and a low moon.', color: '#9dffcf' },
+  bedroom: { name: 'Endless Bedroom', blurb: 'The furniture grew while you slept.', color: '#ffd9a0' },
+  clockwork: { name: 'Clockwork Nightmare', blurb: 'Time is broken. Keep moving.', color: '#ffb34d' },
+};
+
+export const WORLDS = Object.keys(WORLD_META)
+  .map((id) => ({ id, ...WORLD_META[id], stages: STAGES.filter((s) => s.world === id).map((s) => s.id) }))
+  .filter((w) => w.stages.length);

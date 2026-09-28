@@ -50,7 +50,7 @@ export const cityChunks = [
     floorGap(6, 37),
     ['rect', 8, 12, 8, 19, '='], ['rect', 8, 27, 8, 33, '='],
     ceilSpikes(14, 18), ceilSpikes(28, 32),
-    frags(7, 13, 19, 2), frags(7, 28, 33, 2), frags(2, 6, 11, 2),
+    frags(7, 13, 19, 2), frags(7, 28, 33, 2), frags(2, 6, 11, 2), [4, 22, '*'],
   ], { diff: 3 }),
   // A tunnel squeezes the street: short fast flips inside.
   mk('c_tunnel', 42, [
