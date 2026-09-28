@@ -49,6 +49,9 @@ export class Game {
       if (this.state === 'play') this.pause();
       else if (this.state === 'pause') this.resume();
     });
+    this.input.on('restart', () => {
+      if (this.state === 'play' || this.state === 'pause' || this.state === 'results' || this.state === 'over') this.restart();
+    });
     window.addEventListener('resize', () => this.onResize());
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) { if (this.state === 'play') this.pause(); this.audio.ctx?.suspend(); }
@@ -105,7 +108,10 @@ export class Game {
   }
 
   startAttract() {
-    const st = STAGE_BY_ID['1-2'];
+    // The menu dreams of the furthest world you've reached.
+    const unlocked = WORLDS.filter((w) => this.progress.isUnlocked(w.stages[0]));
+    const w = unlocked[unlocked.length - 1] ?? WORLDS[0];
+    const st = STAGE_BY_ID[w.stages[1] ?? w.stages[0]];
     const level = buildStage(st, CHUNKS);
     this.run = new Run({ level, mode: 'attract', stage: st });
     this.bot = new Bot(this.run);

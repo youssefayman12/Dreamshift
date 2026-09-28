@@ -7,7 +7,7 @@ export class Input {
   constructor(surface) {
     this.surface = surface;
     this.device = matchMedia?.('(pointer: coarse)').matches ? 'touch' : 'keyboard';
-    this.handlers = { press: [], pause: [], any: [] };
+    this.handlers = { press: [], pause: [], restart: [], any: [] };
     this.enabled = true;
 
     surface.addEventListener('pointerdown', (e) => {
@@ -34,6 +34,7 @@ export class Input {
       this.device = 'keyboard';
       this.emit('any', e);
       if (PAUSE_KEYS.has(e.code)) this.emit('pause', e);
+      else if (e.code === 'KeyR') this.emit('restart', e);
       else if (FLIP_KEYS.has(e.code)) this.emit('press', e);
     });
   }

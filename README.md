@@ -31,6 +31,7 @@ Useful URL parameters: `?stage=2-3` (jump to a stage), `?endless`, `?bot` (autop
 | --- | --- |
 | Shift gravity | Space, ↑, ↓, W, S, Z, X, Enter, left click, tap anywhere |
 | Pause | Esc, P, or the ❚❚ button |
+| Restart stage / run | R |
 
 Flips are allowed while touching a surface (plus a 75 ms coyote window), and a press
 made just before landing is buffered for 140 ms, so inputs never feel dropped.

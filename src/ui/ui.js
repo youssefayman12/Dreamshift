@@ -232,7 +232,7 @@ export class UI {
         ${tg('reducedMotion', 'Reduced motion', 'No screen shake, ripples or camera kicks')}
         <div class="set-row"><label>Quality<small>Auto adapts to your device</small></label>
           <span>${['auto', 'high', 'low'].map((q) => `<button class="toggle ${s.quality === q ? 'on' : ''}" data-act="quality" data-q="${q}" style="min-width:0;padding:8px 10px">${q}</button>`).join(' ')}</span></div>
-        <div class="set-row"><label>Controls<small>Space / ↑ / ↓ / W / S / click / tap = shift gravity · P / Esc = pause</small></label></div>
+        <div class="set-row"><label>Controls<small>Space / ↑ / ↓ / W / S / click / tap = shift gravity · P / Esc = pause · R = restart</small></label></div>
         <div class="set-row"><label>Progress<small>${this.confirmReset ? 'Tap again to erase everything' : 'Erase stars, unlocks and fragments'}</small></label>
           <button class="ghost" data-act="reset" style="${this.confirmReset ? 'color:var(--danger)' : ''}">${this.confirmReset ? 'Confirm' : 'Reset'}</button></div>
         <div class="row"><button data-act="back" data-focus>← Back</button></div>
