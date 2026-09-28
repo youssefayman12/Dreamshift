@@ -11,7 +11,7 @@ export const bedroomChunks = [
   // Ride a drifting book over the void — on top, or hanging underneath.
   mk('b_books', 40, [
     floorGap(8, 33), ['|', 10, 8, 'm'], ['|', 22, 8, 'n'],
-    ceilSpikes(12, 17), ceilSpikes(24, 29),
+    ceilSpikes(13, 16), ceilSpikes(25, 28),
     frags(7, 11, 16, 1), frags(9, 23, 28, 1), frags(2, 19, 21, 2),
   ], { diff: 1, ents: { m: book(7, 50, 2.6, 0), n: book(7, 50, 2.6, 0.5) } }),
   // Shelves drift in turn above and below: flip from one to the next.

@@ -164,7 +164,12 @@ export class UI {
     const tabs = [['skin', 'Dreamer'], ['trail', 'Trail'], ['flipfx', 'Shift FX'], ['ach', 'Achievements']];
     let body;
     if (this.tab === 'ach') {
-      body = `<div class="items" style="display:block">${ACHIEVEMENTS.map((a) => `
+      const st = p.data.stats;
+      const mins = Math.floor(st.time / 60);
+      const stats = `<div class="stats" style="margin:0 0 10px;max-width:none">
+        <div>Endless best <b>${p.data.endless.bestDist} m</b></div><div>Gravity shifts <b>${st.flips.toLocaleString('en-US')}</b></div>
+        <div>Near misses <b>${st.near.toLocaleString('en-US')}</b></div><div>Time dreaming <b>${mins} min</b></div></div>`;
+      body = `<div class="items" style="display:block">${stats}${ACHIEVEMENTS.map((a) => `
         <div class="ach ${p.data.ach[a.id] ? 'got' : ''}"><span class="ic">${p.data.ach[a.id] ? '★' : '☆'}</span>
         <span><b>${esc(a.name)}</b><small>${esc(a.desc)}${a.reward ? ` — unlocks ${esc(a.reward)}` : ''}</small></span></div>`).join('')}</div>`;
     } else {

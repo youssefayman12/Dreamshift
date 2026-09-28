@@ -68,7 +68,7 @@ export const STAGES = [
     id: '3-1', world: 'bedroom', name: 'Shelf Walk', hint: 'Ride the drifting books', speed: [370, 400],
     parts: [
       'c_start', 'b_books', 'c_alt', 'c_cp', 'b_shelves', 'c_star_nook', 'b_books~', 'c_cp',
-      'b_lift', 'c_star_arc', 'b_shelves~', 'c_star_nook~', 'c_end',
+      'c_billboard!', 'c_star_arc', 'b_shelves~', 'c_star_nook~', 'c_end',
     ],
   },
   {
