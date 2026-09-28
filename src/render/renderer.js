@@ -65,7 +65,7 @@ export class Renderer {
 
   setQuality(q) {
     this.quality = q;
-    this.dprCap = q === 'low' ? 1 : 2;
+    this.dprCap = q === 'low' ? 0.8 : 2; // low renders below native res
     this.particles.budget = q === 'low' ? 0.5 : 1;
     this.resize();
   }
@@ -195,7 +195,10 @@ export class Renderer {
           const p = run.runner;
           this.player.reset(p.x + PW / 2, p.y + PH / 2, p.g);
           this.gShift.snap(p.g);
-          this.roll.cur = this.roll.target;
+          // Restore the inversion state that applies at the checkpoint.
+          let inv = 0;
+          for (const ev of run.level.events) if (ev.type === 'invert' && ev.x <= p.x) inv = ev.on ? Math.PI : 0;
+          this.roll.target = this.roll.cur = inv;
           this.particles.clear();
           P.burst(18, (i, n) => {
             const a = (i / n) * TAU;
@@ -348,23 +351,35 @@ export class Renderer {
     if (run.state === 'play') theme.ambient(v, this.particles, this._dt ?? 1 / 60);
 
     const ripple = this.quality === 'high' && !this.reducedMotion && this.pulse > 0.05;
-    const c = ripple ? this.bctx : ctx;
+    const c = ctx;
     const px = this.px;
 
-    // Roll requires overscan so the corners never show emptiness.
-    const roll = this.roll.cur;
-    const sr = Math.abs(Math.sin(roll)), cr = Math.abs(Math.cos(roll));
+    // World inversion set piece: the whole dream flips over like a card,
+    // with a slight twist. Running direction and look-ahead are preserved.
+    const fl = this.roll.cur;
+    const sy = Math.cos(fl);
+    const twist = Math.sin(fl) * 0.12;
+    const sr = Math.abs(Math.sin(twist)), cr = Math.abs(Math.cos(twist));
     const cover = Math.max((vw * cr + vh * sr) / vw, (vw * sr + vh * cr) / vh);
     const z = this.zoom.value * cover;
+    this.flipSign = sy < 0 ? -1 : 1;
+    this.twist = twist;
 
     const setView = (parallaxOnly) => {
       c.setTransform(px, 0, 0, px, 0, 0);
       c.translate(vw / 2, vh / 2);
-      if (roll) c.rotate(roll);
-      c.scale(z, z);
+      if (twist) c.rotate(twist);
+      const ys = parallaxOnly ? (sy < 0 ? Math.min(sy, -0.25) : Math.max(sy, 0.25)) : sy;
+      c.scale(z, z * (Math.abs(ys) < 0.02 ? 0.02 : ys));
       c.translate(-vw / 2, -vh / 2);
       if (!parallaxOnly) c.translate(-camX, -camY);
     };
+    if (fl > 0.01) {
+      // The dream folds: fill what the compressed backdrop doesn't cover.
+      c.setTransform(px, 0, 0, px, 0, 0);
+      c.fillStyle = theme.pal.fog;
+      c.fillRect(0, 0, vw, vh);
+    }
 
     // ---- background (screen-space world units)
     setView(true);
@@ -398,17 +413,29 @@ export class Renderer {
       c.globalAlpha = 1;
     }
     if (ripple) {
-      const W = this.canvas.width, H = this.canvas.height;
+      // Gravity shockwave: two bands of bent space race outward from the
+      // runner's row. Only the bands are copied and displaced (cheap).
+      const W = this.canvas.width, H = this.canvas.height, dpr = this.dpr;
+      const py = (cy - camY) * px;
+      const k = 1 - this.pulse;
+      const ringR = k * H * 0.75;
+      const bandH = Math.round(90 * dpr);
+      const amp = this.pulse * 11 * dpr;
+      const strip = Math.max(3, Math.round(4 * dpr));
+      const b = this.bctx;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      const strip = Math.max(4, Math.round(6 * this.dpr));
-      const amp = this.pulse * this.pulse * 9 * this.dpr;
-      const ph = this.time * 28;
-      // Ripple radiates from the player row.
-      const py = ((cy - camY) * px);
-      for (let y = 0; y < H; y += strip) {
-        const d = Math.abs(y - py) / H;
-        const off = Math.sin(y * 0.035 / this.dpr - ph + d * 8) * amp * (1 - d);
-        ctx.drawImage(this.buf, 0, y, W, strip, off, y, W, strip);
+      b.setTransform(1, 0, 0, 1, 0, 0);
+      for (const dir of [-1, 1]) {
+        const center = py + dir * ringR;
+        const y0 = Math.max(0, Math.round(center - bandH / 2)), y1 = Math.min(H, Math.round(center + bandH / 2));
+        if (y1 - y0 < strip) continue;
+        b.drawImage(this.canvas, 0, y0, W, y1 - y0, 0, 0, W, y1 - y0);
+        for (let y = y0; y < y1; y += strip) {
+          const h = Math.min(strip, y1 - y);
+          const env = Math.cos(((y - center) / (bandH / 2)) * Math.PI / 2);
+          const off = Math.sin(y * 0.05 / dpr - this.time * 30) * amp * env;
+          ctx.drawImage(this.buf, 0, y - y0, W, h, off, y, W, h);
+        }
       }
     }
     ctx.setTransform(px, 0, 0, px, 0, 0);
@@ -439,9 +466,15 @@ export class Renderer {
       c.font = `800 ${Math.round(15 * s)}px "Trebuchet MS", system-ui, sans-serif`;
       c.lineWidth = 4;
       c.strokeStyle = 'rgba(10,5,30,0.7)';
-      c.strokeText(q.text, q.x, q.y);
+      c.save();
+      c.translate(q.x, q.y);
+      // keep text upright even when the world is flipped over
+      if (this.flipSign < 0) c.scale(1, -1);
+      if (this.twist) c.rotate(-this.twist);
+      c.strokeText(q.text, 0, 0);
       c.fillStyle = q.color;
-      c.fillText(q.text, q.x, q.y);
+      c.fillText(q.text, 0, 0);
+      c.restore();
     }
     c.globalAlpha = 1;
   }

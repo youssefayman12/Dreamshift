@@ -157,30 +157,37 @@ export class BedroomTheme {
       ctx.globalAlpha = 1;
     }
 
-    // Wallpaper (breaks into drifting panels during the shatter).
+    // Wallpaper: a single pattern fill normally; drifting panels once shattered.
     const off = (v.camX * 0.05) % 120;
-    const panel = 240;
-    for (let px = -panel; px < v.w + panel; px += panel) {
-      for (let py = -panel; py < v.h + panel; py += panel) {
-        ctx.save();
-        if (shk > 0) {
+    if (shk <= 0) {
+      if (!this.paperPat || this.paperPatCtx !== ctx) {
+        this.paperPat = ctx.createPattern(this.paper.c, 'repeat');
+        this.paperPatCtx = ctx;
+      }
+      const k = 120 / this.paper.c.width;
+      this.paperPat.setTransform?.(new DOMMatrix().translate(-off, 0).scale(k, k));
+      ctx.fillStyle = this.paperPat;
+      ctx.fillRect(0, 0, v.w, v.h);
+    } else {
+      const panel = 240;
+      for (let px = -panel; px < v.w + panel; px += panel) {
+        for (let py = -panel; py < v.h + panel; py += panel) {
           const seed = Math.sin(px * 12.9 + py * 78.2) * 43758.5;
           const rnd = seed - Math.floor(seed);
+          ctx.save();
           ctx.translate(px + panel / 2, py + panel / 2);
           ctx.rotate((rnd - 0.5) * shk * 0.8 + Math.sin(v.t * 0.5 + rnd * 6) * 0.05 * shk);
           ctx.translate((rnd - 0.5) * 80 * shk, (rnd - 0.5) * 120 * shk + v.gShift * 10 * shk);
-          const s = 1 - shk * 0.25;
-          ctx.scale(s, s);
+          const sc = 1 - shk * 0.25;
+          ctx.scale(sc, sc);
           ctx.translate(-panel / 2, -panel / 2);
-        } else ctx.translate(px, py);
-        ctx.fillStyle = '#2a1422';
-        ctx.globalAlpha = shk > 0 ? 0.95 : 0;
-        if (shk > 0) ctx.fillRect(2, 2, panel - 4, panel - 4);
-        ctx.globalAlpha = 1;
-        for (let tx = -off; tx < panel; tx += 120) for (let ty = 0; ty < panel; ty += 120) {
-          ctx.drawImage(this.paper.c, tx, ty, 120, 120);
+          ctx.fillStyle = '#2a1422';
+          ctx.fillRect(2, 2, panel - 4, panel - 4);
+          for (let tx = 0; tx < panel; tx += 120) for (let ty = 0; ty < panel; ty += 120) {
+            ctx.drawImage(this.paper.c, tx, ty, 120, 120);
+          }
+          ctx.restore();
         }
-        ctx.restore();
       }
     }
 
