@@ -50,7 +50,8 @@ export class UI {
     switch (a) {
       case 'play': g.startStage(g.progress.nextStage() ?? 'endless'); break;
       case 'stage': g.startStage(d.id); break;
-      case 'endless': g.startEndless(); break;
+      case 'endless': g.startEndless(d.daily === '1'); break;
+      case 'double': g.rewardedDouble().then((ok) => { if (ok) this.root.querySelector('[data-act=double]')?.remove(); }); break;
       case 'stages': this.show('stages'); break;
       case 'wardrobe': this.show('wardrobe'); break;
       case 'settings': this.settingsFrom = this.current; this.show('settings'); break;
@@ -129,6 +130,7 @@ export class UI {
       <div class="row">
         <button data-act="stages">☾ Dreams</button>
         <button data-act="endless" ${p.endlessUnlocked ? '' : 'disabled title="Finish 1-1 to unlock"'}>∞ Endless${p.endlessUnlocked ? '' : ' 🔒'}</button>
+        ${p.endlessUnlocked ? '<button data-act="endless" data-daily="1" title="Same dream for everyone today">☀ Daily</button>' : ''}
         <button data-act="wardrobe">✧ Wardrobe</button>
       </div>`;
   }
@@ -276,7 +278,7 @@ export class UI {
         <div class="row">
           ${d.hasNext ? '<button class="primary big" data-act="next" data-focus>NEXT ▶</button>' : '<button class="primary big" data-act="menu" data-focus>MENU</button>'}
         </div>
-        <div class="row"><button data-act="restart">↺ Replay</button><button class="ghost" data-act="menu">⌂ Menu</button></div>
+        <div class="row"><button data-act="restart">↺ Replay</button>${d.canDouble ? '<button data-act="double">✦ ×2 fragments (ad)</button>' : ''}<button class="ghost" data-act="menu">⌂ Menu</button></div>
       </div>`;
     // Animate stars + score count-up.
     setTimeout(() => $('#res-stars')?.querySelectorAll('.got-pending').forEach((el) => { el.className = 'got'; }), 50);
@@ -288,17 +290,17 @@ export class UI {
     const g = this.g;
     $('#s-over').innerHTML = `
       <div class="panel" style="max-width:420px">
-        <p class="sub" style="margin:0">ENDLESS DREAM</p>
+        <p class="sub" style="margin:0">${d.daily ? 'DAILY DREAM · ' + esc(d.daily) : 'ENDLESS DREAM'}</p>
         <h2>YOU WOKE UP</h2>
         <div class="res-score" id="over-dist">0 m</div>
-        <div class="badges">${d.newBest ? '<span class="badge">NEW BEST DISTANCE</span>' : `<span class="badge cyan">BEST ${d.bestDist} m</span>`}</div>
+        <div class="badges">${d.newBest ? `<span class="badge">NEW ${d.daily ? 'DAILY ' : ''}BEST</span>` : `<span class="badge cyan">${d.daily ? 'TODAY\'S ' : ''}BEST ${d.bestDist} m</span>`}</div>
         <div class="stats">
           <div>Score <b>${d.score.toLocaleString('en-US')}</b></div>
           <div>Fragments <b>${d.frags}</b></div>
           <div>Near misses <b>${d.near}</b></div>
           <div>Worlds <b>${d.worlds}</b></div>
         </div>
-        <div class="row"><button class="primary big" data-act="endless" data-focus>AGAIN ↺</button></div>
+        <div class="row"><button class="primary big" data-act="endless" data-daily="${d.daily ? 1 : 0}" data-focus>AGAIN ↺</button></div>
         <div class="row">
           ${d.canContinue ? '<button data-act="continue">▶ Keep dreaming (ad)</button>' : ''}
           <button class="ghost" data-act="menu">⌂ Menu</button>

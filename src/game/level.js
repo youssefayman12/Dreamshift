@@ -285,16 +285,25 @@ export function buildStage(stage, lib) {
  * the exact moment they arrive — reliable and learnable, never a coin flip.
  */
 export function syncHazards(L) {
-  const hs = L.hazards.filter((h) => h.sync !== undefined && h.kind === 'pendulum');
-  if (!hs.length) return;
-  hs.sort((a, b) => a.px - b.px);
+  const items = [
+    ...L.hazards.filter((h) => h.sync && h.kind === 'pendulum').map((h) => ({ h, x: h.px - 11 })),
+    // stacks: judged as the runner reaches their front face
+    ...L.kinematics.filter((k) => k.sync && k.kind === 'pillar').map((h) => ({ h, x: h.x - 40 })),
+  ].sort((a, b) => a.x - b.x);
+  if (!items.length) return;
   let x = 3 * TILE, t = 0, i = 0;
-  while (i < hs.length && x < L.width) {
-    const h = hs[i];
-    if (x + 11 >= h.px) {
-      // bob at the bottom of its arc (angle 0) when we pass under the pivot
+  while (i < items.length && x < L.width) {
+    const { h } = items[i];
+    if (x >= items[i].x) {
       const base = -t / h.period;
-      h.phase = (base - Math.floor(base)) + (h.sync === 'late' ? 0.5 : 0);
+      const frac = base - Math.floor(base);
+      if (h.kind === 'pendulum') {
+        // bob at the bottom of its arc (angle 0) as we pass under the pivot
+        h.phase = frac + (h.sync === 'late' ? 0.5 : 0);
+      } else {
+        // 'max': fully extended as we arrive; 'min': fully retracted
+        h.phase = frac + (h.sync === 'max' ? 0.5 : 0);
+      }
       i++;
       continue;
     }

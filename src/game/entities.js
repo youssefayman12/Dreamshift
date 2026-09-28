@@ -142,10 +142,10 @@ export function makePillar(x, baseY, p = {}) {
   const min = (p.min ?? 1) * TILE, max = (p.max ?? 5) * TILE;
   const period = p.period ?? 2.4, phase = p.phase ?? 0, side = p.side ?? 'floor';
   return {
-    id: nextId++, kind: 'pillar', solid: true, x, baseY, w, min, max, period, phase, side,
+    id: nextId++, kind: 'pillar', solid: true, x, baseY, w, min, max, period, phase, side, sync: p.sync,
     minX: x, maxX: x + w,
     lenAt(t) {
-      const s = 0.5 - 0.5 * Math.cos((t / period + phase) * TAU);
+      const s = 0.5 - 0.5 * Math.cos((t / period + this.phase) * TAU);
       return min + (max - min) * s;
     },
     rectAt(t, o) {
@@ -174,7 +174,7 @@ export function mirrorEntity(e) {
     case 'pillar':
       return makePillar(e.x, WORLD_H - e.baseY, {
         w: e.w / TILE, min: e.min / TILE, max: e.max / TILE, period: e.period, phase: e.phase,
-        side: e.side === 'floor' ? 'ceil' : 'floor',
+        side: e.side === 'floor' ? 'ceil' : 'floor', sync: e.sync,
       });
     default:
       return e;

@@ -13,6 +13,9 @@ import { AudioEngine } from '../engine/audio.js';
 import { Input } from '../engine/input.js';
 import { UI } from '../ui/ui.js';
 import { AdPolicy } from '../platform/ads.js';
+import { hashStr } from '../engine/math.js';
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
 
 export class Game {
   constructor({ canvas, uiRoot, platform, analytics }) {
@@ -139,22 +142,29 @@ export class Game {
     this.analytics.track('stage_start', { id });
   }
 
-  startEndless() {
+  startEndless(daily = false) {
     if (!this.progress.endlessUnlocked && !this.params.has('endless')) return;
-    const worlds = WORLDS.filter((w) => this.progress.isUnlocked(w.stages[0])).map((w) => w.id);
-    const dir = new EndlessDirector(worlds.length ? worlds : ['city'], undefined, { worldLen: +this.params.get('worldlen') || undefined });
+    let worlds = WORLDS.filter((w) => this.progress.isUnlocked(w.stages[0])).map((w) => w.id);
+    let seed;
+    if (daily) {
+      // Everyone dreams the same dream today: fixed seed, every world.
+      seed = hashStr('dreamshift-daily-' + todayKey());
+      worlds = WORLDS.map((w) => w.id);
+    }
+    const dir = new EndlessDirector(worlds.length ? worlds : ['city'], seed, { worldLen: +this.params.get('worldlen') || undefined });
     const run = new Run({ level: dir.level, mode: 'endless' });
     run.director = dir;
+    run.daily = daily ? todayKey() : null;
     run.worldName = dir.worldName;
     run.worldsSeen = 1;
     this.beginRun(run, dir.world);
-    this.ui.stageCard('ENDLESS DREAM', dir.worldName.toUpperCase());
-    this.analytics.track('endless_start', {});
+    this.ui.stageCard(daily ? 'DAILY DREAM · ' + todayKey() : 'ENDLESS DREAM', dir.worldName.toUpperCase());
+    this.analytics.track('endless_start', { daily });
   }
 
   restart() {
     this.bankRun();
-    if (this.run?.mode === 'endless') this.startEndless();
+    if (this.run?.mode === 'endless') this.startEndless(!!this.run.daily);
     else if (this.run?.stage) this.startStage(this.run.stage.id);
   }
 
@@ -193,7 +203,7 @@ export class Game {
 
   onPress() {
     if (this.state === 'play' && this.run && !this.bot) this.run.press();
-    else if (this.state === 'over' && this.overReady) this.startEndless();
+    else if (this.state === 'over' && this.overReady) this.startEndless(!!this.run?.daily);
   }
 
   /** Add the run's fragments to the wallet (on any exit). */
@@ -243,6 +253,7 @@ export class Game {
       newBest: res.newBest && !res.firstClear, flawless: r.deaths === 0, newStars: res.newStars,
       frags: r.fragsTaken, fragTotal: r.level.fragCount, near: r.nearMisses, deaths: r.deaths, streak: r.bestStreak,
       hasNext: !!STAGES[i + 1],
+      canDouble: this.platform.hasRewarded && r.fragsTaken + r.starsTaken > 0,
       unlocked: res.unlocked.length ? res.unlocked[0] : (res.firstClear && r.stage.id === '1-1' ? 'ENDLESS' : ''),
     });
   }
@@ -254,18 +265,42 @@ export class Game {
     this.platform.gameplayStop();
     const e = this.progress.data.endless;
     const dist = Math.floor(r.distance);
-    const newBest = dist > e.bestDist;
+    let newBest = dist > e.bestDist;
     e.bestDist = Math.max(e.bestDist, dist);
     e.best = Math.max(e.best, r.score);
+    let bestDist = e.bestDist;
+    if (r.daily) {
+      const d = this.progress.data.daily ?? {};
+      if (d.date !== r.daily) { d.date = r.daily; d.best = 0; }
+      newBest = dist > d.best;
+      d.best = Math.max(d.best, dist);
+      bestDist = d.best;
+      this.progress.data.daily = d;
+    }
     this.bankRun();
     this.analytics.track('endless_over', { dist, score: r.score });
     this.audio.duck(true, 900);
     this.ui.show('over', {
-      dist, score: r.score, frags: r.fragsTaken, near: r.nearMisses, worlds: r.worldsSeen, newBest, bestDist: e.bestDist,
+      dist, score: r.score, frags: r.fragsTaken, near: r.nearMisses, worlds: r.worldsSeen, newBest, bestDist, daily: r.daily,
       canContinue: !r.continued && this.platform.hasRewarded,
     });
     // Brief lockout so a panicked tap doesn't instantly restart.
     setTimeout(() => { this.overReady = true; }, 450);
+  }
+
+  /** Optional rewarded ad on the results screen: bank the run's fragments again. */
+  async rewardedDouble() {
+    const r = this.run;
+    if (!r || r.doubled) return false;
+    const ok = await this.ads.rewarded('double_fragments');
+    if (!ok) { this.ui.toast('No ad available', 'Your fragments are safe either way.'); return false; }
+    r.doubled = true;
+    const bonus = r.fragsTaken + r.starsTaken * 10;
+    this.progress.addDust(bonus);
+    this.progress.save();
+    this.ui.toast('✦ Fragments doubled', `+${bonus} dream fragments`);
+    this.audio.sfx('buy');
+    return true;
   }
 
   async rewardedContinue() {

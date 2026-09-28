@@ -4,7 +4,7 @@
 import { mk, floorGap, ceilGap, floorSpikes, ceilSpikes, frags } from './chunk.js';
 
 const book = (w, ay, period, phase) => ({ type: 'mover', w, h: 1, ay, period, phase, style: 'book' });
-const stack = (side, phase, max = 6, period = 2.4) => ({ type: 'pillar', side, min: 0.2, max, period, phase });
+const stack = (side, phase, max = 6, period = 2.4, sync) => ({ type: 'pillar', side, min: 0.2, max, period, phase, sync });
 const mobile = (len, speed, arms = 2, phase = 0) => ({ type: 'rotor', len, speed, arms, phase });
 
 export const bedroomChunks = [
@@ -24,7 +24,7 @@ export const bedroomChunks = [
   mk('b_stacks', 40, [
     [12, 10, 'p'], [2, 10, 'q'], [12, 20, 'r'], [2, 20, 's'], [12, 30, 'p'], [2, 30, 'q'],
     frags(7, 6, 36, 3),
-  ], { diff: 2, ents: { p: stack('floor', 0), q: stack('ceil', 0.5), r: stack('floor', 0.25), s: stack('ceil', 0.75) } }),
+  ], { diff: 2, ents: { p: stack('floor', 0, 6, 2.4, 'max'), q: stack('ceil', 0.5, 6, 2.4, 'min'), r: stack('floor', 0.25, 6, 2.4, 'min'), s: stack('ceil', 0.75, 6, 2.4, 'max') } }),
   // The night mobile: turning arms of thorny stars mid-corridor.
   mk('b_mobile', 42, [
     [7, 11, 'r'], floorSpikes(8, 13), [7, 26, 's'], ceilSpikes(23, 28),
@@ -41,7 +41,7 @@ export const bedroomChunks = [
     [12, 14, 'p'], [11, 26, 'r'], [12, 34, 'p'], [10, 30, '*'],
     ceilSpikes(16, 19), [6, 24, '^^^'],
     frags(2, 7, 15, 2), frags(6, 17, 22, 2), frags(2, 25, 38, 2), frags(12, 16, 24, 2),
-  ], { diff: 3, ents: { p: stack('floor', 0, 3.0, 2), r: mobile(40, 0.4, 2) } }),
+  ], { diff: 3, ents: { p: stack('floor', 0, 3.0, 2, 'max'), r: mobile(40, 0.4, 2) } }),
   // Drawer stairs: a tunnel with a book lift.
   mk('b_lift', 38, [
     floorGap(8, 29), ['|', 10, 9, 'm'], ['|', 20, 7, 'n'],
